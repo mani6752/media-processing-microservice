@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     use_mock_s3: bool = True
     s3_endpoint_url: str = "http://127.0.0.1:5000"
     redis_url: str = "redis://localhost:6379/0"
+    celery_broker_url: str = "amqp://guest:guest@localhost:5672//"
 
     class Config:
         env_file = ".env"

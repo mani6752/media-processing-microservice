@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from app.services.s3_service import generate_presigned_upload_url
 from app.services.redis_service import set_job_status, get_job_status
+from app.tasks import process_media_job
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -24,6 +25,8 @@ def request_upload_url(payload: UploadRequest):
     url = generate_presigned_upload_url(object_key)
 
     set_job_status(job_id, "pending", {"object_key": object_key, "filename": payload.filename})
+
+    process_media_job.delay(job_id, object_key)
 
     return UploadResponse(upload_url=url, object_key=object_key, job_id=job_id)
 
