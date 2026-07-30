@@ -28,3 +28,19 @@ def generate_presigned_upload_url(object_key: str, expires_in: int = 3600):
         ExpiresIn=expires_in,
     )
     return url
+
+
+def download_file(object_key: str) -> bytes:
+    s3 = get_s3_client()
+    response = s3.get_object(Bucket=settings.s3_bucket_name, Key=object_key)
+    return response["Body"].read()
+
+
+def upload_file(object_key: str, file_bytes: bytes, content_type: str = "image/jpeg"):
+    s3 = get_s3_client()
+    s3.put_object(
+        Bucket=settings.s3_bucket_name,
+        Key=object_key,
+        Body=file_bytes,
+        ContentType=content_type,
+    )

@@ -24,11 +24,19 @@ def request_upload_url(payload: UploadRequest):
     object_key = f"uploads/{payload.filename}"
     url = generate_presigned_upload_url(object_key)
 
-    set_job_status(job_id, "pending", {"object_key": object_key, "filename": payload.filename})
-
-    process_media_job.delay(job_id, object_key)
+    set_job_status(job_id, "awaiting_upload", {"object_key": object_key, "filename": payload.filename})
 
     return UploadResponse(upload_url=url, object_key=object_key, job_id=job_id)
+
+
+@router.post("/confirm/{job_id}")
+def confirm_upload(job_id: str):
+    status = get_job_status(job_id)
+    if not status:
+        return {"error": "job not found"}
+
+    process_media_job.delay(job_id, status["object_key"])
+    return {"message": "processing started", "job_id": job_id}
 
 
 @router.get("/status/{job_id}")
