@@ -20,6 +20,9 @@ from app.services.image_service import (
 from app.services.video_processor import VideoProcessor
 
 
+VIDEO_EXTENSIONS = (".mp4", ".mov", ".avi", ".mkv")
+
+
 @celery_app.task(
     name="process_media_job",
     bind=True,
@@ -49,10 +52,37 @@ def process_media_job(self, job_id: str, object_key: str):
                 "thumbnail_key": thumbnail_key,
             }
 
+        elif object_key.lower().endswith(VIDEO_EXTENSIONS):
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                input_ext = os.path.splitext(object_key)[1]
+                input_path = os.path.join(tmp_dir, f"input{input_ext}")
+                thumbnail_path = os.path.join(tmp_dir, "thumbnail.jpg")
+                output_path = os.path.join(tmp_dir, "output.mp4")
+
+                # Pull the original video down from S3 to local disk (ffmpeg needs real files)
+                download_file_to_path(object_key, input_path)
+
+                VideoProcessor.create_thumbnail(input_path, thumbnail_path)
+                VideoProcessor.convert_to_mp4(input_path, output_path)
+
+                thumbnail_key = object_key.replace("uploads/", "thumbnails/")
+                thumbnail_key = os.path.splitext(thumbnail_key)[0] + ".jpg"
+
+                processed_key = object_key.replace("uploads/", "processed/")
+                processed_key = os.path.splitext(processed_key)[0] + ".mp4"
+
+                upload_local_file(thumbnail_key, thumbnail_path)
+                upload_local_file(processed_key, output_path)
+
+                result = {
+                    "thumbnail_key": thumbnail_key,
+                    "processed_key": processed_key,
+                }
+
         else:
-            # Video processing will be added next
             result = {
-                "message": "Video processing coming next"
+                "message": f"Unsupported file type: {object_key}"
             }
 
         set_job_status(job_id, "completed", result)
@@ -65,3 +95,4 @@ def process_media_job(self, job_id: str, object_key: str):
     except Exception as exc:
         set_job_status(job_id, "failed", {"error": str(exc)})
         raise self.retry(exc=exc)
+    
