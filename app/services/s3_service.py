@@ -1,3 +1,4 @@
+import os
 import boto3
 from app.config import settings
 
@@ -44,3 +45,31 @@ def upload_file(object_key: str, file_bytes: bytes, content_type: str = "image/j
         Body=file_bytes,
         ContentType=content_type,
     )
+
+
+def download_file_to_path(object_key: str, local_path: str):
+    s3 = get_s3_client()
+
+    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
+    s3.download_file(
+        settings.s3_bucket_name,
+        object_key,
+        local_path,
+    )
+
+
+def upload_local_file(
+    object_key: str,
+    local_path: str,
+    content_type: str = "video/mp4",
+):
+    s3 = get_s3_client()
+
+    with open(local_path, "rb") as f:
+        s3.put_object(
+            Bucket=settings.s3_bucket_name,
+            Key=object_key,
+            Body=f,
+            ContentType=content_type,
+        )
