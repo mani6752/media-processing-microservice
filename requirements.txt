@@ -1,0 +1,13 @@
+fastapi==0.139.0
+uvicorn[standard]==0.50.0
+celery==5.6.3
+redis==8.0.1
+boto3==1.43.40
+pillow==12.3.0
+ffmpeg-python==0.2.0
+pydantic==2.13.4
+pydantic-settings==2.14.2
+python-dotenv==1.2.2
+python-multipart==0.0.32
+moto[server]==5.2.2
+pytest==9.1.1
