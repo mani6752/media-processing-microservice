@@ -19,6 +19,12 @@ from app.services.image_service import (
 
 from app.services.video_processor import VideoProcessor
 
+from app.services.metrics_service import (
+    TASKS_SUCCEEDED,
+    TASKS_FAILED,
+    TASK_DURATION,
+)
+
 
 VIDEO_EXTENSIONS = (".mp4", ".mov", ".avi", ".mkv")
 
@@ -30,6 +36,8 @@ VIDEO_EXTENSIONS = (".mp4", ".mov", ".avi", ".mkv")
     default_retry_delay=10,
 )
 def process_media_job(self, job_id: str, object_key: str):
+    start_time = time.monotonic()
+
     try:
         set_job_status(job_id, "processing")
 
@@ -60,7 +68,6 @@ def process_media_job(self, job_id: str, object_key: str):
                 thumbnail_path = os.path.join(tmp_dir, "thumbnail.jpg")
                 output_path = os.path.join(tmp_dir, "output.mp4")
 
-                # Pull the original video down from S3 to local disk (ffmpeg needs real files)
                 download_file_to_path(object_key, input_path)
 
                 VideoProcessor.create_thumbnail(input_path, thumbnail_path)
@@ -87,6 +94,9 @@ def process_media_job(self, job_id: str, object_key: str):
 
         set_job_status(job_id, "completed", result)
 
+        TASKS_SUCCEEDED.inc()
+        TASK_DURATION.observe(time.monotonic() - start_time)
+
         return {
             "job_id": job_id,
             "status": "completed",
@@ -94,5 +104,9 @@ def process_media_job(self, job_id: str, object_key: str):
 
     except Exception as exc:
         set_job_status(job_id, "failed", {"error": str(exc)})
+
+        TASKS_FAILED.inc()
+        TASK_DURATION.observe(time.monotonic() - start_time)
+
         raise self.retry(exc=exc)
     

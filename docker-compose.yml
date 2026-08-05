@@ -25,6 +25,9 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - S3_ENDPOINT_URL=http://mock-s3:5000
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    volumes:
+      - prometheus_multiproc:/tmp/prometheus_multiproc
     depends_on:
       - redis
       - rabbitmq
@@ -39,7 +42,13 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - S3_ENDPOINT_URL=http://mock-s3:5000
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    volumes:
+      - prometheus_multiproc:/tmp/prometheus_multiproc
     depends_on:
       - redis
       - rabbitmq
       - mock-s3
+
+volumes:
+  prometheus_multiproc:
